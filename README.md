@@ -44,5 +44,3 @@ A user-friendly dynamic form builder built with HTML, JavaScript, and Tailwind C
    - View all submitted data.
    - Delete individual entries.
 
-## Folder Structure
-

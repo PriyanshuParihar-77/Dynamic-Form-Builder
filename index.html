@@ -1,52 +1,82 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dynamic Form</title>
+    <title>Dynamic Form Builder</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"></link>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Roboto', sans-serif;
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #ff9a9e, #fad0c4, #fad390, #f6d365);
+            background-size: 400% 400%;
+            animation: gradientBG 10s ease infinite;
+        }
+
+        @keyframes gradientBG {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        button:hover {
+            transform: scale(1.05);
         }
     </style>
 </head>
-<body class="bg-gray-100">
-    <div class="container mx-auto p-6 bg-white shadow-lg rounded-lg">
-        <header class="mb-6">
-            <h1 class="text-3xl font-bold text-center mb-4 text-blue-600">Dynamic Form</h1>
-            <select class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" id="formTypeSelect">
-                <option value="">Select Form Type</option>
-                <option value="User Information">User Information</option>
-                <option value="Address Information">Address Information</option>
-                <option value="Payment Information">Payment Information</option>
-            </select>
-        </header>
+<body>
+    <div class="min-h-screen flex flex-col items-center justify-center">
+        <div class="w-full max-w-3xl p-8 bg-white shadow-xl rounded-lg">
+            <!-- Header -->
+            <header class="text-center mb-6">
+                <h1 class="text-4xl font-bold text-blue-600 mb-2">Dynamic Form Builder</h1>
+                <p class="text-gray-600">Select a form type to generate dynamic fields</p>
+            </header>
 
-        <form id="dynamicForm" class="space-y-4">
-            <!-- Form fields will be dynamically inserted here -->
-        </form>
-
-        <footer class="mt-6">
-            <div class="w-full bg-gray-200 h-2 rounded-full">
-                <div id="progressBar" class="bg-blue-500 h-2 rounded-full" style="width: 0%;"></div>
+            <!-- Form Type Selector -->
+            <div class="mb-6">
+                <select id="formTypeSelect" class="w-full px-4 py-3 bg-gray-100 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-500 focus:outline-none transition">
+                    <option value="">Select Form Type</option>
+                    <option value="User Information">User Information</option>
+                    <option value="Address Information">Address Information</option>
+                    <option value="Payment Information">Payment Information</option>
+                </select>
             </div>
-            <p id="progressText" class="text-gray-600 mt-2 text-center">0% completed</p>
-        </footer>
 
-        <div id="submittedDataContainer" class="mt-6 hidden">
-            <h2 class="text-2xl font-bold mb-4 text-blue-600">Submitted Data</h2>
-            <table class="w-full border-collapse border border-gray-300">
-                <thead>
-                    <tr id="tableHeaders" class="bg-blue-100">
-                        <!-- Table headers will be dynamically inserted here -->
-                    </tr>
-                </thead>
-                <tbody id="tableBody">
-                    <!-- Table rows will be dynamically inserted here -->
-                </tbody>
-            </table>
+            <!-- Dynamic Form -->
+            <form id="dynamicForm" class="space-y-6">
+                <!-- Fields will be dynamically generated -->
+            </form>
+
+            <!-- Progress Bar -->
+            <div class="mt-6">
+                <div class="w-full bg-gray-200 h-2 rounded-full">
+                    <div id="progressBar" class="bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 h-2 rounded-full transition-all duration-500" style="width: 0%;"></div>
+                </div>
+                <p id="progressText" class="text-center text-gray-600 mt-2 text-sm">0% completed</p>
+            </div>
+
+            <!-- Submitted Data -->
+            <div id="submittedDataContainer" class="hidden mt-8">
+                <h2 class="text-2xl font-bold text-blue-600 mb-4">Submitted Data</h2>
+                <table class="w-full table-auto border-collapse border border-gray-300">
+                    <thead>
+                        <tr id="tableHeaders" class="bg-blue-100 text-left text-sm font-semibold">
+                            <!-- Headers will be dynamically generated -->
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- Rows will be dynamically generated -->
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
@@ -77,13 +107,9 @@
             },
         };
 
-        let formType = "";
         let formFields = [];
         let formData = {};
-        let errors = {};
         let submittedData = [];
-        let progress = 0;
-
         const formTypeSelect = document.getElementById('formTypeSelect');
         const dynamicForm = document.getElementById('dynamicForm');
         const progressBar = document.getElementById('progressBar');
@@ -92,14 +118,11 @@
         const tableHeaders = document.getElementById('tableHeaders');
         const tableBody = document.getElementById('tableBody');
 
-        formTypeSelect.addEventListener('change', (e) => {
-            formType = e.target.value;
-            if (formType) {
-                const response = mockApiResponses[formType];
-                formFields = response.fields || [];
+        formTypeSelect.addEventListener('change', () => {
+            const selectedType = formTypeSelect.value;
+            if (selectedType) {
+                formFields = mockApiResponses[selectedType]?.fields || [];
                 formData = {};
-                errors = {};
-                progress = 0;
                 renderFormFields();
                 updateProgress();
             }
@@ -108,21 +131,16 @@
         const renderFormFields = () => {
             dynamicForm.innerHTML = '';
             formFields.forEach(field => {
-                const formGroup = document.createElement('div');
-                formGroup.className = 'form-group';
-
+                const fieldContainer = document.createElement('div');
                 const label = document.createElement('label');
-                label.className = 'block text-gray-700 font-medium mb-2';
                 label.textContent = field.label;
-                formGroup.appendChild(label);
+                label.className = 'block mb-2 font-semibold text-gray-700';
 
                 let input;
                 if (field.type === 'dropdown') {
                     input = document.createElement('select');
-                    input.name = field.name;
-                    input.className = 'w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500';
+                    input.className = 'w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-pink-500';
                     const defaultOption = document.createElement('option');
-                    defaultOption.value = '';
                     defaultOption.textContent = `Select ${field.label}`;
                     input.appendChild(defaultOption);
                     field.options.forEach(option => {
@@ -134,136 +152,81 @@
                 } else {
                     input = document.createElement('input');
                     input.type = field.type;
-                    input.name = field.name;
-                    input.className = 'w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500';
+                    input.className = 'w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-pink-500';
                 }
 
-                input.addEventListener('input', (e) => handleChange(e, field));
-                formGroup.appendChild(input);
+                input.addEventListener('input', () => {
+                    formData[field.name] = input.value;
+                    updateProgress();
+                });
 
-                const errorSpan = document.createElement('span');
-                errorSpan.className = 'text-red-500 text-sm';
-                formGroup.appendChild(errorSpan);
-
-                dynamicForm.appendChild(formGroup);
+                fieldContainer.appendChild(label);
+                fieldContainer.appendChild(input);
+                dynamicForm.appendChild(fieldContainer);
             });
 
             const submitButton = document.createElement('button');
-            submitButton.type = 'submit';
-            submitButton.className = 'bg-blue-500 text-white p-3 rounded-lg w-full mt-4 hover:bg-blue-600 transition duration-300';
             submitButton.textContent = 'Submit';
+            submitButton.className = 'w-full py-2 bg-blue-500 text-white rounded-lg mt-4';
+            submitButton.addEventListener('click', handleSubmit);
             dynamicForm.appendChild(submitButton);
-
-            dynamicForm.addEventListener('submit', handleSubmit);
         };
 
-        const handleChange = (e, field) => {
-            const { name, value } = e.target;
-            formData[name] = value;
-            if (field.required && value) {
-                errors[name] = '';
-            }
-            updateProgress();
-        };
-
-        const handleValidation = () => {
-            let valid = true;
-            errors = {};
-            formFields.forEach(field => {
-                if (field.required && !formData[field.name]) {
-                    errors[field.name] = `${field.label} is required`;
-                    valid = false;
-                }
-            });
-            return valid;
-        };
-
-        const handleSubmit = (e) => {
-            e.preventDefault();
-            if (handleValidation()) {
-                submittedData.push(formData);
-                formData = {};
-                formFields = [];
-                formType = '';
-                progress = 100;
-                alert('Form submitted successfully!');
-                renderFormFields();
-                renderSubmittedData();
-                updateProgress();
-            }
-        };
-
-        const handleEdit = (index) => {
-            formData = submittedData[index];
-            submittedData.splice(index, 1);
-            renderFormFields();
+        const handleSubmit = (event) => {
+            event.preventDefault();
+            submittedData.push({ ...formData });
             renderSubmittedData();
-            updateProgress();
-        };
-
-        const handleDelete = (index) => {
-            submittedData.splice(index, 1);
-            alert('Entry deleted successfully!');
-            renderSubmittedData();
-        };
-
-        const updateProgress = () => {
-            const totalFields = formFields.length;
-            const completedFields = Object.keys(formData).filter(key => formData[key]).length;
-            progress = (completedFields / totalFields) * 100;
-            progressBar.style.width = `${progress}%`;
-            progressText.textContent = `${Math.round(progress)}% completed`;
+            formData = {};
+            formFields = [];
+            dynamicForm.innerHTML = '';
+            progressBar.style.width = '0%';
+            progressText.textContent = '0% completed';
         };
 
         const renderSubmittedData = () => {
-            if (submittedData.length > 0) {
-                submittedDataContainer.classList.remove('hidden');
-                tableHeaders.innerHTML = '';
-                tableBody.innerHTML = '';
+            submittedDataContainer.classList.remove('hidden');
+            tableHeaders.innerHTML = '';
+            tableBody.innerHTML = '';
 
-                const headers = Object.keys(submittedData[0]);
-                headers.forEach(header => {
+            if (submittedData.length > 0) {
+                Object.keys(submittedData[0]).forEach(key => {
                     const th = document.createElement('th');
-                    th.className = 'border border-gray-300 p-2 bg-blue-100';
-                    th.textContent = header;
+                    th.textContent = key;
+                    th.className = 'p-2 border';
                     tableHeaders.appendChild(th);
                 });
-
-                const actionsTh = document.createElement('th');
-                actionsTh.className = 'border border-gray-300 p-2 bg-blue-100';
-                actionsTh.textContent = 'Actions';
-                tableHeaders.appendChild(actionsTh);
 
                 submittedData.forEach((data, index) => {
                     const tr = document.createElement('tr');
                     Object.values(data).forEach(value => {
                         const td = document.createElement('td');
-                        td.className = 'border border-gray-300 p-2';
                         td.textContent = value;
+                        td.className = 'p-2 border';
                         tr.appendChild(td);
                     });
 
                     const actionsTd = document.createElement('td');
-                    actionsTd.className = 'border border-gray-300 p-2';
-
-                    const editButton = document.createElement('button');
-                    editButton.className = 'bg-yellow-500 text-white p-1 rounded mr-2 hover:bg-yellow-600 transition duration-300';
-                    editButton.textContent = 'Edit';
-                    editButton.addEventListener('click', () => handleEdit(index));
-                    actionsTd.appendChild(editButton);
-
                     const deleteButton = document.createElement('button');
-                    deleteButton.className = 'bg-red-500 text-white p-1 rounded hover:bg-red-600 transition duration-300';
                     deleteButton.textContent = 'Delete';
-                    deleteButton.addEventListener('click', () => handleDelete(index));
-                    actionsTd.appendChild(deleteButton);
+                    deleteButton.className = 'px-4 py-2 bg-red-500 text-white rounded';
+                    deleteButton.addEventListener('click', () => {
+                        submittedData.splice(index, 1);
+                        renderSubmittedData();
+                    });
 
+                    actionsTd.appendChild(deleteButton);
                     tr.appendChild(actionsTd);
                     tableBody.appendChild(tr);
                 });
-            } else {
-                submittedDataContainer.classList.add('hidden');
             }
+        };
+
+        const updateProgress = () => {
+            const totalFields = formFields.length;
+            const completedFields = Object.keys(formData).filter(key => formData[key]).length;
+            const progress = (completedFields / totalFields) * 100;
+            progressBar.style.width = `${progress}%`;
+            progressText.textContent = `${Math.round(progress)}% completed`;
         };
     </script>
 </body>

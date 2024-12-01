@@ -1,0 +1,270 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Form</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"></link>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-6 bg-white shadow-lg rounded-lg">
+        <header class="mb-6">
+            <h1 class="text-3xl font-bold text-center mb-4 text-blue-600">Dynamic Form</h1>
+            <select class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" id="formTypeSelect">
+                <option value="">Select Form Type</option>
+                <option value="User Information">User Information</option>
+                <option value="Address Information">Address Information</option>
+                <option value="Payment Information">Payment Information</option>
+            </select>
+        </header>
+
+        <form id="dynamicForm" class="space-y-4">
+            <!-- Form fields will be dynamically inserted here -->
+        </form>
+
+        <footer class="mt-6">
+            <div class="w-full bg-gray-200 h-2 rounded-full">
+                <div id="progressBar" class="bg-blue-500 h-2 rounded-full" style="width: 0%;"></div>
+            </div>
+            <p id="progressText" class="text-gray-600 mt-2 text-center">0% completed</p>
+        </footer>
+
+        <div id="submittedDataContainer" class="mt-6 hidden">
+            <h2 class="text-2xl font-bold mb-4 text-blue-600">Submitted Data</h2>
+            <table class="w-full border-collapse border border-gray-300">
+                <thead>
+                    <tr id="tableHeaders" class="bg-blue-100">
+                        <!-- Table headers will be dynamically inserted here -->
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- Table rows will be dynamically inserted here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const mockApiResponses = {
+            "User Information": {
+                fields: [
+                    { name: "firstName", type: "text", label: "First Name", required: true },
+                    { name: "lastName", type: "text", label: "Last Name", required: true },
+                    { name: "age", type: "number", label: "Age", required: false },
+                ],
+            },
+            "Address Information": {
+                fields: [
+                    { name: "street", type: "text", label: "Street", required: true },
+                    { name: "city", type: "text", label: "City", required: true },
+                    { name: "state", type: "dropdown", label: "State", options: ["California", "Texas", "New York"], required: true },
+                    { name: "zipCode", type: "text", label: "Zip Code", required: false },
+                ],
+            },
+            "Payment Information": {
+                fields: [
+                    { name: "cardNumber", type: "text", label: "Card Number", required: true },
+                    { name: "expiryDate", type: "date", label: "Expiry Date", required: true },
+                    { name: "cvv", type: "password", label: "CVV", required: true },
+                    { name: "cardholderName", type: "text", label: "Cardholder Name", required: true },
+                ],
+            },
+        };
+
+        let formType = "";
+        let formFields = [];
+        let formData = {};
+        let errors = {};
+        let submittedData = [];
+        let progress = 0;
+
+        const formTypeSelect = document.getElementById('formTypeSelect');
+        const dynamicForm = document.getElementById('dynamicForm');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        const submittedDataContainer = document.getElementById('submittedDataContainer');
+        const tableHeaders = document.getElementById('tableHeaders');
+        const tableBody = document.getElementById('tableBody');
+
+        formTypeSelect.addEventListener('change', (e) => {
+            formType = e.target.value;
+            if (formType) {
+                const response = mockApiResponses[formType];
+                formFields = response.fields || [];
+                formData = {};
+                errors = {};
+                progress = 0;
+                renderFormFields();
+                updateProgress();
+            }
+        });
+
+        const renderFormFields = () => {
+            dynamicForm.innerHTML = '';
+            formFields.forEach(field => {
+                const formGroup = document.createElement('div');
+                formGroup.className = 'form-group';
+
+                const label = document.createElement('label');
+                label.className = 'block text-gray-700 font-medium mb-2';
+                label.textContent = field.label;
+                formGroup.appendChild(label);
+
+                let input;
+                if (field.type === 'dropdown') {
+                    input = document.createElement('select');
+                    input.name = field.name;
+                    input.className = 'w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500';
+                    const defaultOption = document.createElement('option');
+                    defaultOption.value = '';
+                    defaultOption.textContent = `Select ${field.label}`;
+                    input.appendChild(defaultOption);
+                    field.options.forEach(option => {
+                        const optionElement = document.createElement('option');
+                        optionElement.value = option;
+                        optionElement.textContent = option;
+                        input.appendChild(optionElement);
+                    });
+                } else {
+                    input = document.createElement('input');
+                    input.type = field.type;
+                    input.name = field.name;
+                    input.className = 'w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500';
+                }
+
+                input.addEventListener('input', (e) => handleChange(e, field));
+                formGroup.appendChild(input);
+
+                const errorSpan = document.createElement('span');
+                errorSpan.className = 'text-red-500 text-sm';
+                formGroup.appendChild(errorSpan);
+
+                dynamicForm.appendChild(formGroup);
+            });
+
+            const submitButton = document.createElement('button');
+            submitButton.type = 'submit';
+            submitButton.className = 'bg-blue-500 text-white p-3 rounded-lg w-full mt-4 hover:bg-blue-600 transition duration-300';
+            submitButton.textContent = 'Submit';
+            dynamicForm.appendChild(submitButton);
+
+            dynamicForm.addEventListener('submit', handleSubmit);
+        };
+
+        const handleChange = (e, field) => {
+            const { name, value } = e.target;
+            formData[name] = value;
+            if (field.required && value) {
+                errors[name] = '';
+            }
+            updateProgress();
+        };
+
+        const handleValidation = () => {
+            let valid = true;
+            errors = {};
+            formFields.forEach(field => {
+                if (field.required && !formData[field.name]) {
+                    errors[field.name] = `${field.label} is required`;
+                    valid = false;
+                }
+            });
+            return valid;
+        };
+
+        const handleSubmit = (e) => {
+            e.preventDefault();
+            if (handleValidation()) {
+                submittedData.push(formData);
+                formData = {};
+                formFields = [];
+                formType = '';
+                progress = 100;
+                alert('Form submitted successfully!');
+                renderFormFields();
+                renderSubmittedData();
+                updateProgress();
+            }
+        };
+
+        const handleEdit = (index) => {
+            formData = submittedData[index];
+            submittedData.splice(index, 1);
+            renderFormFields();
+            renderSubmittedData();
+            updateProgress();
+        };
+
+        const handleDelete = (index) => {
+            submittedData.splice(index, 1);
+            alert('Entry deleted successfully!');
+            renderSubmittedData();
+        };
+
+        const updateProgress = () => {
+            const totalFields = formFields.length;
+            const completedFields = Object.keys(formData).filter(key => formData[key]).length;
+            progress = (completedFields / totalFields) * 100;
+            progressBar.style.width = `${progress}%`;
+            progressText.textContent = `${Math.round(progress)}% completed`;
+        };
+
+        const renderSubmittedData = () => {
+            if (submittedData.length > 0) {
+                submittedDataContainer.classList.remove('hidden');
+                tableHeaders.innerHTML = '';
+                tableBody.innerHTML = '';
+
+                const headers = Object.keys(submittedData[0]);
+                headers.forEach(header => {
+                    const th = document.createElement('th');
+                    th.className = 'border border-gray-300 p-2 bg-blue-100';
+                    th.textContent = header;
+                    tableHeaders.appendChild(th);
+                });
+
+                const actionsTh = document.createElement('th');
+                actionsTh.className = 'border border-gray-300 p-2 bg-blue-100';
+                actionsTh.textContent = 'Actions';
+                tableHeaders.appendChild(actionsTh);
+
+                submittedData.forEach((data, index) => {
+                    const tr = document.createElement('tr');
+                    Object.values(data).forEach(value => {
+                        const td = document.createElement('td');
+                        td.className = 'border border-gray-300 p-2';
+                        td.textContent = value;
+                        tr.appendChild(td);
+                    });
+
+                    const actionsTd = document.createElement('td');
+                    actionsTd.className = 'border border-gray-300 p-2';
+
+                    const editButton = document.createElement('button');
+                    editButton.className = 'bg-yellow-500 text-white p-1 rounded mr-2 hover:bg-yellow-600 transition duration-300';
+                    editButton.textContent = 'Edit';
+                    editButton.addEventListener('click', () => handleEdit(index));
+                    actionsTd.appendChild(editButton);
+
+                    const deleteButton = document.createElement('button');
+                    deleteButton.className = 'bg-red-500 text-white p-1 rounded hover:bg-red-600 transition duration-300';
+                    deleteButton.textContent = 'Delete';
+                    deleteButton.addEventListener('click', () => handleDelete(index));
+                    actionsTd.appendChild(deleteButton);
+
+                    tr.appendChild(actionsTd);
+                    tableBody.appendChild(tr);
+                });
+            } else {
+                submittedDataContainer.classList.add('hidden');
+            }
+        };
+    </script>
+</body>
+</html>

@@ -11,10 +11,6 @@ A user-friendly dynamic form builder built with HTML, JavaScript, and Tailwind C
 - **Responsive Design**: Optimized for all device sizes using Tailwind CSS.
 - **Animated Background**: A smooth gradient animation for an engaging user experience.
 
-## Demo
-
-![Dynamic Form Builder](https://via.placeholder.com/800x400)  
-*A screenshot or link to a live demo can be added here.*
 
 ## Technologies Used
 
